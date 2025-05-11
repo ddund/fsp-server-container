@@ -1,0 +1,3 @@
+[submodule "fsp-code"]
+	path = fsp-code
+	url = https://git.code.sf.net/p/fsp/code
