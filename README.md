@@ -5,7 +5,7 @@ FSP repository: https://sourceforge.net/p/fsp/code/ci/master/tree/
 ## How to use it?
 Pull the published container:`podman pull ghcr.io/ddund/fsp-server:latest`
 
-Or build the container on your own by running the `buildah.sh` script. You must have `buildah` installed.
+Or build the container on your own. Clone the repo, initialize and update the submodule and run the `buildah.sh` script. You must have `buildah` installed.
 
 ## FSP configuration
 An example configuration file, `fspd.conf`, is provided. It is commented to explain the configuration parameters.
@@ -37,8 +37,12 @@ You might also want to add the following empty files to the FSP home directory t
 
 Don't forget the `.` before the filename. You can [read more about them here](https://man.freebsd.org/cgi/man.cgi?query=fspd&sektion=1&manpath=freebsd-ports).
 
-## Example quadlet file
-This example uses a privileged container with a unique user namespace (UserNS=auto). For context, see this [Podman discussion](https://github.com/containers/podman/discussions/13728 )
+## Example quadlet files
+If you don't know what Podman Quadlet is you can [read more about them here](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html
+). These examples uses a privileged container with a unique user namespace (UserNS=auto). For context, see this [Podman discussion](https://github.com/containers/podman/discussions/13728).
+
+
+### Standard Ethernet MTU
 
 Be sure to replace `PATH_TO_CONF_FILE` and `PATH_TO_SHARED_DIR` with your actual file paths.
 
@@ -51,6 +55,39 @@ Image=ghcr.io/ddund/fsp-server:latest
 AutoUpdate=registry
 PublishPort=8021:21/udp
 UserNS=auto
+Mount=type=bind,source=PATH_TO_CONF_FILE,destination=/etc/fspd.conf,ro=true
+Mount=type=bind,source=PATH_TO_SHARED_DIR,destination=/var/ftp
+
+[Service]
+# Inform systemd of additional exit status
+SuccessExitStatus=0 143
+
+[Install]
+WantedBy=default.target
+```
+
+### Jumbo frame MTU
+
+You can name this file `fsp-server.network` for example.
+
+```
+[Network]
+NetworkName=fsp-server
+Options=mtu=9000
+```
+
+Then the container file will look like this:
+
+```
+[Unit]
+Description=FSP server
+
+[Container]
+Image=ghcr.io/ddund/fsp-server:latest
+AutoUpdate=registry
+PublishPort=8021:21/udp
+UserNS=auto
+Network=fsp-server.network
 Mount=type=bind,source=PATH_TO_CONF_FILE,destination=/etc/fspd.conf,ro=true
 Mount=type=bind,source=PATH_TO_SHARED_DIR,destination=/var/ftp
 
