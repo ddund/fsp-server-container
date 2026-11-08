@@ -13,6 +13,12 @@
       "groupName": "ubi9 base images",
       "automerge": true,
       "automergeType": "pr"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor, "patch", "digest"],
+      "automerge": [true],
+      "automergeType": "pr"
     }
   ],
   "git-submodules": {
