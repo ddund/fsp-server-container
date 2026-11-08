@@ -58,7 +58,7 @@ jobs:
       # Steps below only run on pushes to main / manual dispatch, not on PRs.
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
