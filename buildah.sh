@@ -1,18 +1,20 @@
 #!/bin/bash
+set -euo pipefail
 
-# Does not compile on fedora, use debian as a build container to compile fsp
-build_container="$(buildah from docker.io/library/debian:bookworm-slim)"
-buildah run "$build_container" apt-get update
-buildah run "$build_container" apt-get install -y build-essential python3 flex gcc scons
+# Build fsp-server image from Containerfile. Computes FSP version and
+# commit revision from the fsp-code submodule and passes them as
+# build args.
+#
+# Usage: ./buildah.sh [image-tag]   (default tag: fsp-server)
+#
+# Requires the fsp-code submodule to be populated:
+#   git submodule update --init
+
 git_root="$(git rev-parse --show-toplevel)"
-buildah run --mount type=bind,source="$git_root"/fsp-code/,destination=/fsp-code/,rw "$build_container" bash -c "cd /fsp-code && scons install without-clients=yes without-fspscan=yes prefix=/usr sysconfdir=/etc"
+cd "$git_root"
 
-# Create image using the same debian image as base
-runtime_container="$(buildah from docker.io/library/debian:bookworm-slim)"
-buildah copy --from "$build_container" "$runtime_container" /usr/bin/fspd /usr/bin/
-buildah config --port 21/udp "$runtime_container"
-buildah config --entrypoint '["/usr/bin/fspd"]' "$runtime_container"
-buildah commit "$runtime_container" fsp-server
-
-# Clean up
-buildah rm "$build_container" "$runtime_container"
+buildah bud \
+    --build-arg FSP_VERSION="$(sed -n "s/^VERSION='\(.*\)'/\1/p" fsp-code/SConstruct)" \
+    --build-arg FSP_REVISION="$(git -C fsp-code describe --tags --always)" \
+    -t "${1:-fsp-server}" \
+    .
