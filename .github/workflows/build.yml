@@ -1,0 +1,71 @@
+name: build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/ddund/fsp-server
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout (with submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Derive FSP version and revision
+        id: fsp
+        run: |
+          echo "version=$(sed -n "s/^VERSION='\(.*\)'/\1/p" fsp-code/SConstruct)" >> "$GITHUB_OUTPUT"
+          echo "revision=$(git -C fsp-code describe --tags --always)" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: |
+          buildah bud \
+            --build-arg FSP_VERSION="${{ steps.fsp.outputs.version }}" \
+            --build-arg FSP_REVISION="${{ steps.fsp.outputs.revision }}" \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ steps.fsp.outputs.revision }}" \
+            .
+
+      - name: Smoke test (fspd must start and stay up)
+        run: |
+          mkdir -p /tmp/ftptest
+          sed -e 's/^port 21/port 2121/' \
+              -e '/# daemonize on/a daemonize off' \
+              fspd.conf > /tmp/fspd-test.conf
+          id="$(podman run -d -p 2121:2121/udp \
+            -v /tmp/fspd-test.conf:/etc/fspd.conf:ro \
+            -v /tmp/ftptest:/var/ftp \
+            "$IMAGE:latest")"
+          sleep 3
+          if [ "$(podman inspect -f '{{.State.Running}}' "$id")" != "true" ]; then
+            echo "fspd exited early:"
+            podman logs "$id"
+            exit 1
+          fi
+          podman logs "$id"
+          podman rm -f "$id"
+
+      # Steps below only run on pushes to main / manual dispatch, not on PRs.
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        if: github.event_name != 'pull_request'
+        run: |
+          podman push "$IMAGE:latest"
+          podman push "$IMAGE:${{ steps.fsp.outputs.revision }}"
