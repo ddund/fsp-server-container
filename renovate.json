@@ -16,8 +16,8 @@
     },
     {
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor, "patch", "digest"],
-      "automerge": [true],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true,
       "automergeType": "pr"
     }
   ],
