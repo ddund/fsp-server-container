@@ -17,7 +17,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout (with submodule)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
