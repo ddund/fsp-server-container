@@ -1,5 +1,5 @@
 # --- Build stage ---
-FROM registry.access.redhat.com/ubi9/ubi@sha256:8b212f75a0e5a156ac28b1c5c030d2e8a07715254e19d522286118279399af81 AS build
+FROM registry.access.redhat.com/ubi9/ubi@sha256:1e9f0ed9fceafb40878bc1705ff124aa150e3fed873f18c42cdc2dded319e0a8 AS build
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm \
  && dnf install -y python3-scons gcc make \
  && dnf clean all
@@ -9,7 +9,7 @@ RUN cd /fsp-code \
  && scons install CFLAGS="-std=gnu17" without-clients=yes without-fspscan=yes prefix=/usr sysconfdir=/etc
 
 # --- Runtime stage ---
-FROM registry.access.redhat.com/ubi9/ubi-micro@sha256:b59ac4f291d86027c2681f7a7b1cbf7448972fc55a6cb8e25cab5aa5eef5ce5f
+FROM registry.access.redhat.com/ubi9/ubi-micro@sha256:dbd325b96bcd432dd42816d31412bdf1dc0fb973b79ed310344bc23c76c068db
 COPY --from=build /usr/bin/fspd /usr/bin/fspd
 EXPOSE 21/udp
 ENTRYPOINT ["/usr/bin/fspd"]
