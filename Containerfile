@@ -1,5 +1,5 @@
 # --- Build stage ---
-FROM registry.access.redhat.com/ubi9/ubi@sha256:e45746866f611d164042b961cd83f1093c4fdb422d9b99fcf23ff951626044f8 AS build
+FROM registry.access.redhat.com/ubi9/ubi@sha256:6636b79fba9e5044360366f189333c30b5ce528efd92c40c68b074592b971fcd AS build
 RUN dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm \
  && dnf install -y python3-scons gcc make \
  && dnf clean all
